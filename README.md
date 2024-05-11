@@ -25,9 +25,9 @@ When building the master branch, please make sure you are using the latest stabl
 $ rustup update
 ```
 
-When building a specific release branch, you should check the rust version in `ci/rust-version.sh` and if necessary, install that version by running:
+When building a specific release branch, install that version by running:
 ```bash
-$ rustup install VERSION
+$ rustup install 
 ```
 Note that if this is not the latest rust version on your machine, cargo commands may require an [override](https://rust-lang.github.io/rustup/overrides.html) in order to use the correct version.
 
@@ -47,8 +47,8 @@ $ sudo dnf install openssl-devel systemd-devel pkg-config zlib-devel llvm clang 
 ## **2. Download the source code.**
 
 ```bash
-$ git clone https://github.com/solana-labs/solana.git
-$ cd solana
+$ git clone https://github.com/openlab-openos/OpenOS.Prod
+$ cd OpenOS.Prod
 ```
 
 ## **3. Build.**
@@ -65,12 +65,7 @@ $ ./cargo build
 $ ./cargo test
 ```
 
-### Starting a local testnet
-Start your own testnet locally, instructions are in the [online docs](https://docs.solana.com/cluster/bench-tps).
 
-### Accessing the remote development cluster
-* `devnet` - stable public cluster for development accessible via
-devnet.solana.com. Runs 24/7. Learn more about the [public clusters](https://docs.solana.com/clusters)
 
 # Benchmarking
 
@@ -97,7 +92,6 @@ To generate code coverage statistics:
 
 ```bash
 $ scripts/coverage.sh
-$ open target/cov/lcov-local/index.html
 ```
 
 Why coverage? While most see coverage as a code quality metric, we see it primarily as a developer
