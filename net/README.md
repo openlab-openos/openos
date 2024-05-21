@@ -52,7 +52,6 @@ or
 ```bash
 $ ./ec2.sh create -P ...
 ```
-
 ### Deploying a tarball-based network
 To deploy the latest pre-built `edge` channel tarball (ie, latest from the `master`
 branch), once the testnet has been created run:
