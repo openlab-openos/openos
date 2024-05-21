@@ -19,3 +19,6 @@ name = "solana_logger"
 
 [package.metadata.docs.rs]
 targets = ["x86_64-unknown-linux-gnu"]
+
+
+
