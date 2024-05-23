@@ -79,6 +79,7 @@ To induce the partition `net.sh netem --config-file <config file path>`
 To remove partition `net.sh netem --config-file <config file path> --netem-cmd cleanup`
 The partitioning is also removed if you do `net.sh stop` or `restart`.
 
+
 An example config that produces 3 almost equal partitions:
 
 ```
