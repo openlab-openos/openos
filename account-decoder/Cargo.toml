@@ -1,4 +1,5 @@
 [package]
+
 name = "solana-account-decoder"
 description = "Solana account decoder"
 documentation = "https://docs.rs/solana-account-decoder"
