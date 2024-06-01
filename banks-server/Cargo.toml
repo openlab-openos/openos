@@ -1,4 +1,5 @@
 [package]
+
 name = "solana-banks-server"
 description = "Solana banks server"
 documentation = "https://docs.rs/solana-banks-server"
