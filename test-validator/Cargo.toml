@@ -1,4 +1,5 @@
 [package]
+
 name = "solana-test-validator"
 description = "Blockchain, Rebuilt for Scale"
 readme = "../README.md"
