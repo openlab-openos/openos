@@ -1,4 +1,5 @@
 [package]
+
 name = "solana-cost-model"
 description = "Solana cost model"
 documentation = "https://docs.rs/solana-cost-model"
