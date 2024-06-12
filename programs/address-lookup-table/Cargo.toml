@@ -1,4 +1,5 @@
 [package]
+
 name = "solana-address-lookup-table-program"
 description = "Solana address lookup table program"
 documentation = "https://docs.rs/solana-address-loookup-table-program"
