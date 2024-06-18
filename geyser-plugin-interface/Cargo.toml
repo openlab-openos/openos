@@ -1,4 +1,5 @@
 [package]
+
 name = "solana-geyser-plugin-interface"
 description = "The Solana Geyser plugin interface."
 documentation = "https://docs.rs/solana-geyser-plugin-interface"
