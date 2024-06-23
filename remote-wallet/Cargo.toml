@@ -1,4 +1,5 @@
 [package]
+
 name = "solana-remote-wallet"
 description = "Blockchain, Rebuilt for Scale"
 documentation = "https://docs.rs/solana-remote-wallet"
