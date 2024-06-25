@@ -4,7 +4,7 @@
 /test-ledger/
 
 **/*.rs.bk
-.cargo
+/scripts/bin
 
 /config/
 /bin
