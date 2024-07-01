@@ -1,4 +1,5 @@
 [package]
+
 name = "solana-net-shaper"
 description = "The solana cluster network shaping tool"
 publish = false
