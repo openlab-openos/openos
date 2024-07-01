@@ -1,4 +1,5 @@
 [package]
+
 name = "solana-net-utils"
 description = "Solana Network Utilities"
 documentation = "https://docs.rs/solana-net-utils"
