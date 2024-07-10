@@ -1,4 +1,5 @@
 [package]
+
 name = "solana-clap-utils"
 description = "Solana utilities for the clap"
 documentation = "https://docs.rs/solana-clap-utils"
