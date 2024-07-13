@@ -1,4 +1,5 @@
 [package]
+
 name = "rbpf-cli"
 description = "Decommissioned CLI to test and analyze SBF programs"
 keywords = ["SBF", "interpreter", "JIT"]
