@@ -1,4 +1,5 @@
 [package]
+
 name = "solana-rpc-client-api"
 description = "Solana Client Common Utilities"
 documentation = "https://docs.rs/solana-rpc-client-api"
