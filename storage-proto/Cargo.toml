@@ -1,4 +1,5 @@
 [package]
+
 name = "solana-storage-proto"
 description = "Solana Storage Protobuf Definitions"
 documentation = "https://docs.rs/solana-storage-proto"
