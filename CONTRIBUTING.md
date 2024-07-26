@@ -1,5 +1,6 @@
 # Solana Coding Guidelines
 
+
 The goal of these guidelines is to improve developer productivity by allowing
 developers to jump into any file in the codebase and not need to adapt to
 inconsistencies in how the code is written. The codebase should appear as if it
