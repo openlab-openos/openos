@@ -1,4 +1,5 @@
 [package]
+
 name = "solana-validator"
 description = "Blockchain, Rebuilt for Scale"
 documentation = "https://docs.rs/solana-validator"
