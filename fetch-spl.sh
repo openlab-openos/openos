@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+
 #
 # Fetches the latest SPL programs and produces the solana-genesis command-line
 # arguments needed to install them
