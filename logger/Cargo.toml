@@ -1,4 +1,5 @@
 [package]
+
 name = "solana-logger"
 description = "Solana Logger"
 documentation = "https://docs.rs/solana-logger"
