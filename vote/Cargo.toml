@@ -1,5 +1,4 @@
 [package]
-
 name = "solana-vote"
 description = "Solana vote"
 documentation = "https://docs.rs/solana-vote"
