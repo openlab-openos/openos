@@ -2,7 +2,6 @@
 #
 # Adjust the maximum number of files that may be opened to as large as possible.
 #
-
 maxOpenFds=65000
 
 if [[ $(ulimit -n) -lt $maxOpenFds ]]; then
