@@ -1,5 +1,4 @@
 [package]
-
 name = "solana-rpc-test"
 description = "Solana RPC Test"
 documentation = "https://docs.rs/solana-rpc-test"
