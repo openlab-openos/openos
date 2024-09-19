@@ -1,5 +1,4 @@
 [package]
-
 name = "solana-accounts-cluster-bench"
 publish = false
 version = { workspace = true }
