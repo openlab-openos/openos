@@ -1,5 +1,4 @@
 [package]
-
 name = "solana-rpc"
 description = "Solana RPC"
 documentation = "https://docs.rs/solana-rpc"
