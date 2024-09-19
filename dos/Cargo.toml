@@ -1,4 +1,5 @@
 [package]
+
 name = "solana-dos"
 publish = false
 description = "Tool to send various requests to cluster in order to evaluate the effect on performance"
