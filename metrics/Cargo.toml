@@ -1,4 +1,5 @@
 [package]
+
 name = "solana-metrics"
 description = "Solana Metrics"
 documentation = "https://docs.rs/solana-metrics"
