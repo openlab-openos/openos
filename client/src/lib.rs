@@ -1,5 +1,4 @@
 #![allow(clippy::arithmetic_side_effects)]
-
 pub mod connection_cache;
 pub mod nonblocking;
 pub mod quic_client;
