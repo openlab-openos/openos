@@ -3,6 +3,7 @@
 #
 # |source| me
 #
+
 if [[ -n $CI ]]; then
   export CI=1
   if [[ -n $TRAVIS ]]; then
