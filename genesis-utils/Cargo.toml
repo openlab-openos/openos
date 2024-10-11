@@ -1,5 +1,4 @@
 [package]
-
 name = "solana-genesis-utils"
 description = "Solana Genesis Utils"
 documentation = "https://docs.rs/solana-download-utils"
