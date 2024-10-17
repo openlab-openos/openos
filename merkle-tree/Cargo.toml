@@ -1,5 +1,4 @@
 [package]
-
 name = "solana-merkle-tree"
 description = "Solana Merkle Tree"
 documentation = "https://docs.rs/solana-merkle-tree"
