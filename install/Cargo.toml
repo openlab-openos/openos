@@ -1,5 +1,4 @@
 [package]
-
 name = "solana-install"
 description = "The solana cluster software installer"
 documentation = "https://docs.rs/solana-install"
