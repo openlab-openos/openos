@@ -1,5 +1,4 @@
 [package]
-
 name = "solana-genesis"
 description = "Blockchain, Rebuilt for Scale"
 documentation = "https://docs.rs/solana-genesis"
