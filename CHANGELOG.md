@@ -1,5 +1,4 @@
 # Changelog
-
 All notable changes to this project will be documented in this file.
 
 Please follow the [guidance](#adding-to-this-changelog) at the bottom of this file when making changes
