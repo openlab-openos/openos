@@ -1,5 +1,4 @@
 [package]
-
 name = "solana-zk-keygen"
 description = """
 Solana privacy-related key generation utility
