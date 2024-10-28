@@ -1,5 +1,4 @@
 [package]
-
 name = "solana-tpu-client"
 description = "Solana TPU Client"
 documentation = "https://docs.rs/solana-tpu-client"
