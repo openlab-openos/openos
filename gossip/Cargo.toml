@@ -1,5 +1,4 @@
 [package]
-
 name = "solana-gossip"
 description = "Blockchain, Rebuilt for Scale"
 documentation = "https://docs.rs/solana-gossip"
