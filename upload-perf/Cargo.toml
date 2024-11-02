@@ -1,5 +1,4 @@
 [package]
-
 name = "solana-upload-perf"
 description = "Metrics Upload Utility"
 publish = false
