@@ -1,4 +1,5 @@
 [package]
+
 name = "solana-keygen"
 description = "Solana key generation utility"
 documentation = "https://docs.rs/solana-keygen"
