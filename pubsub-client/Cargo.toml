@@ -1,5 +1,4 @@
 [package]
-
 name = "solana-pubsub-client"
 description = "Solana Pubsub Client"
 documentation = "https://docs.rs/solana-pubsub-client"
