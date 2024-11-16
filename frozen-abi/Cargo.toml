@@ -1,5 +1,4 @@
 [package]
-
 name = "solana-frozen-abi"
 description = "Solana Frozen ABI"
 documentation = "https://docs.rs/solana-frozen-abi"
