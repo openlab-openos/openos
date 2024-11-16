@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
 set -e
-
 here=$(dirname "$0")
 SOLANA_ROOT="$(cd "$here"/..; pwd)"
 
