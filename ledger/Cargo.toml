@@ -1,5 +1,4 @@
 [package]
-
 name = "solana-ledger"
 description = "Solana ledger"
 documentation = "https://docs.rs/solana-ledger"
