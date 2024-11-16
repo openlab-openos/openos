@@ -1,5 +1,4 @@
 [package]
-
 name = "solana-measure"
 description = "Blockchain, Rebuilt for Scale"
 documentation = "https://docs.rs/solana-measure"
