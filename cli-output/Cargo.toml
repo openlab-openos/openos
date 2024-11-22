@@ -1,5 +1,4 @@
 [package]
-
 name = "solana-cli-output"
 description = "Blockchain, Rebuilt for Scale"
 documentation = "https://docs.rs/solana-cli-output"
