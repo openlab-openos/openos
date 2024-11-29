@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
 set -e
-
 here=$(dirname "$0")
 # shellcheck source=net/common.sh
 source "$here"/common.sh
