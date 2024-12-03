@@ -5113,11 +5113,11 @@ dependencies = [
  "serde_json",
  "solana-config-program",
  "solana-sdk",
- "spl-pod",
- "spl-token",
- "spl-token-2022",
- "spl-token-group-interface",
- "spl-token-metadata-interface",
+ "spl-pod 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "spl-token 4.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "spl-token-2022 1.0.0 (git+https://github.com/openlab-openos/open-token/)",
+ "spl-token-group-interface 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "spl-token-metadata-interface 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "thiserror",
  "zstd",
 ]
@@ -5163,7 +5163,7 @@ dependencies = [
  "solana-test-validator",
  "solana-transaction-status",
  "solana-version",
- "spl-token",
+ "spl-token 4.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -5574,7 +5574,7 @@ dependencies = [
  "solana-version",
  "solana-vote-program",
  "solana_rbpf",
- "spl-memo",
+ "spl-memo 4.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "tempfile",
  "thiserror",
  "tiny-bip39",
@@ -5618,7 +5618,7 @@ dependencies = [
  "solana-sdk",
  "solana-transaction-status",
  "solana-vote-program",
- "spl-memo",
+ "spl-memo 4.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -5928,7 +5928,7 @@ dependencies = [
  "solana-metrics",
  "solana-sdk",
  "solana-version",
- "spl-memo",
+ "spl-memo 4.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "thiserror",
  "tokio",
 ]
@@ -6201,9 +6201,9 @@ dependencies = [
  "solana-transaction-status",
  "solana-vote",
  "solana-vote-program",
- "spl-pod",
- "spl-token",
- "spl-token-2022",
+ "spl-pod 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "spl-token 4.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "spl-token-2022 1.0.0 (git+https://github.com/openlab-openos/open-token/)",
  "static_assertions",
  "strum",
  "strum_macros",
@@ -6737,9 +6737,9 @@ dependencies = [
  "solana-version",
  "solana-vote",
  "solana-vote-program",
- "spl-pod",
- "spl-token",
- "spl-token-2022",
+ "spl-pod 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "spl-token 4.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "spl-token-2022 1.0.0 (git+https://github.com/openlab-openos/open-token/)",
  "stream-cancel",
  "symlink",
  "thiserror",
@@ -6792,7 +6792,7 @@ dependencies = [
  "solana-sdk",
  "solana-transaction-status",
  "solana-version",
- "spl-token-2022",
+ "spl-token-2022 1.0.0 (git+https://github.com/openlab-openos/open-token/)",
  "thiserror",
 ]
 
@@ -7224,7 +7224,7 @@ dependencies = [
  "solana-transaction-status",
  "solana-version",
  "spl-associated-token-account",
- "spl-token",
+ "spl-token 4.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "tempfile",
  "thiserror",
 ]
@@ -7295,9 +7295,9 @@ dependencies = [
  "solana-account-decoder",
  "solana-sdk",
  "spl-associated-token-account",
- "spl-memo",
- "spl-token",
- "spl-token-2022",
+ "spl-memo 4.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "spl-token 4.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "spl-token-2022 1.0.0 (git+https://github.com/openlab-openos/open-token/)",
  "thiserror",
 ]
 
@@ -7417,7 +7417,7 @@ dependencies = [
  "solana-tpu-client",
  "solana-version",
  "solana-vote-program",
- "spl-token-2022",
+ "spl-token-2022 1.0.0 (git+https://github.com/openlab-openos/open-token/)",
  "symlink",
  "thiserror",
  "tikv-jemallocator",
@@ -7624,8 +7624,8 @@ dependencies = [
  "num-derive 0.4.1",
  "num-traits",
  "solana-program",
- "spl-token",
- "spl-token-2022",
+ "spl-token 4.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "spl-token-2022 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "thiserror",
 ]
 
@@ -7637,7 +7637,17 @@ checksum = "cce5d563b58ef1bb2cdbbfe0dfb9ffdc24903b10ae6a4df2d8f425ece375033f"
 dependencies = [
  "bytemuck",
  "solana-program",
- "spl-discriminator-derive",
+ "spl-discriminator-derive 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "spl-discriminator"
+version = "0.1.0"
+source = "git+https://github.com/openlab-openos/open-token/#56fffa2e63ec4518a41fd0f71b2589cb2bfeb65f"
+dependencies = [
+ "bytemuck",
+ "solana-program",
+ "spl-discriminator-derive 0.1.1 (git+https://github.com/openlab-openos/open-token/)",
 ]
 
 [[package]]
@@ -7647,7 +7657,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fadbefec4f3c678215ca72bd71862697bb06b41fd77c0088902dd3203354387b"
 dependencies = [
  "quote",
- "spl-discriminator-syn",
+ "spl-discriminator-syn 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "syn 2.0.38",
+]
+
+[[package]]
+name = "spl-discriminator-derive"
+version = "0.1.1"
+source = "git+https://github.com/openlab-openos/open-token/#56fffa2e63ec4518a41fd0f71b2589cb2bfeb65f"
+dependencies = [
+ "quote",
+ "spl-discriminator-syn 0.1.1 (git+https://github.com/openlab-openos/open-token/)",
  "syn 2.0.38",
 ]
 
@@ -7656,6 +7676,18 @@ name = "spl-discriminator-syn"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0e5f2044ca42c8938d54d1255ce599c79a1ffd86b677dfab695caa20f9ffc3f2"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "sha2 0.10.8",
+ "syn 2.0.38",
+ "thiserror",
+]
+
+[[package]]
+name = "spl-discriminator-syn"
+version = "0.1.1"
+source = "git+https://github.com/openlab-openos/open-token/#56fffa2e63ec4518a41fd0f71b2589cb2bfeb65f"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -7684,6 +7716,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "spl-memo"
+version = "4.0.0"
+source = "git+https://github.com/openlab-openos/open-token/#56fffa2e63ec4518a41fd0f71b2589cb2bfeb65f"
+dependencies = [
+ "solana-program",
+]
+
+[[package]]
 name = "spl-pod"
 version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -7693,7 +7733,19 @@ dependencies = [
  "bytemuck",
  "solana-program",
  "solana-zk-token-sdk",
- "spl-program-error",
+ "spl-program-error 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "spl-pod"
+version = "0.1.0"
+source = "git+https://github.com/openlab-openos/open-token/#56fffa2e63ec4518a41fd0f71b2589cb2bfeb65f"
+dependencies = [
+ "borsh 0.10.3",
+ "bytemuck",
+ "solana-program",
+ "solana-zk-token-sdk",
+ "spl-program-error 0.3.0 (git+https://github.com/openlab-openos/open-token/)",
 ]
 
 [[package]]
@@ -7705,7 +7757,19 @@ dependencies = [
  "num-derive 0.4.1",
  "num-traits",
  "solana-program",
- "spl-program-error-derive",
+ "spl-program-error-derive 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "thiserror",
+]
+
+[[package]]
+name = "spl-program-error"
+version = "0.3.0"
+source = "git+https://github.com/openlab-openos/open-token/#56fffa2e63ec4518a41fd0f71b2589cb2bfeb65f"
+dependencies = [
+ "num-derive 0.4.1",
+ "num-traits",
+ "solana-program",
+ "spl-program-error-derive 0.3.1 (git+https://github.com/openlab-openos/open-token/)",
  "thiserror",
 ]
 
@@ -7722,6 +7786,30 @@ dependencies = [
 ]
 
 [[package]]
+name = "spl-program-error-derive"
+version = "0.3.1"
+source = "git+https://github.com/openlab-openos/open-token/#56fffa2e63ec4518a41fd0f71b2589cb2bfeb65f"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "sha2 0.10.8",
+ "syn 2.0.38",
+]
+
+[[package]]
+name = "spl-tlv-account-resolution"
+version = "0.4.0"
+source = "git+https://github.com/openlab-openos/open-token/#56fffa2e63ec4518a41fd0f71b2589cb2bfeb65f"
+dependencies = [
+ "bytemuck",
+ "solana-program",
+ "spl-discriminator 0.1.0 (git+https://github.com/openlab-openos/open-token/)",
+ "spl-pod 0.1.0 (git+https://github.com/openlab-openos/open-token/)",
+ "spl-program-error 0.3.0 (git+https://github.com/openlab-openos/open-token/)",
+ "spl-type-length-value 0.3.0 (git+https://github.com/openlab-openos/open-token/)",
+]
+
+[[package]]
 name = "spl-tlv-account-resolution"
 version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -7729,10 +7817,10 @@ checksum = "3f7020347c07892c08560d230fbb8a980316c9e198e22b198b7b9d951ff96047"
 dependencies = [
  "bytemuck",
  "solana-program",
- "spl-discriminator",
- "spl-pod",
- "spl-program-error",
- "spl-type-length-value",
+ "spl-discriminator 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "spl-pod 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "spl-program-error 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "spl-type-length-value 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -7751,6 +7839,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "spl-token"
+version = "4.0.0"
+source = "git+https://github.com/openlab-openos/open-token/#56fffa2e63ec4518a41fd0f71b2589cb2bfeb65f"
+dependencies = [
+ "arrayref",
+ "bytemuck",
+ "num-derive 0.4.1",
+ "num-traits",
+ "num_enum 0.7.1",
+ "solana-program",
+ "thiserror",
+]
+
+[[package]]
 name = "spl-token-2022"
 version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -7764,13 +7866,36 @@ dependencies = [
  "solana-program",
  "solana-security-txt",
  "solana-zk-token-sdk",
- "spl-memo",
- "spl-pod",
- "spl-token",
- "spl-token-group-interface",
- "spl-token-metadata-interface",
- "spl-transfer-hook-interface",
- "spl-type-length-value",
+ "spl-memo 4.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "spl-pod 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "spl-token 4.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "spl-token-group-interface 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "spl-token-metadata-interface 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "spl-transfer-hook-interface 0.4.1",
+ "spl-type-length-value 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "thiserror",
+]
+
+[[package]]
+name = "spl-token-2022"
+version = "1.0.0"
+source = "git+https://github.com/openlab-openos/open-token/#56fffa2e63ec4518a41fd0f71b2589cb2bfeb65f"
+dependencies = [
+ "arrayref",
+ "bytemuck",
+ "num-derive 0.4.1",
+ "num-traits",
+ "num_enum 0.7.1",
+ "solana-program",
+ "solana-security-txt",
+ "solana-zk-token-sdk",
+ "spl-memo 4.0.0 (git+https://github.com/openlab-openos/open-token/)",
+ "spl-pod 0.1.0 (git+https://github.com/openlab-openos/open-token/)",
+ "spl-token 4.0.0 (git+https://github.com/openlab-openos/open-token/)",
+ "spl-token-group-interface 0.1.0 (git+https://github.com/openlab-openos/open-token/)",
+ "spl-token-metadata-interface 0.2.0 (git+https://github.com/openlab-openos/open-token/)",
+ "spl-transfer-hook-interface 0.4.0",
+ "spl-type-length-value 0.3.0 (git+https://github.com/openlab-openos/open-token/)",
  "thiserror",
 ]
 
@@ -7782,9 +7907,21 @@ checksum = "b889509d49fa74a4a033ca5dae6c2307e9e918122d97e58562f5c4ffa795c75d"
 dependencies = [
  "bytemuck",
  "solana-program",
- "spl-discriminator",
- "spl-pod",
- "spl-program-error",
+ "spl-discriminator 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "spl-pod 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "spl-program-error 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "spl-token-group-interface"
+version = "0.1.0"
+source = "git+https://github.com/openlab-openos/open-token/#56fffa2e63ec4518a41fd0f71b2589cb2bfeb65f"
+dependencies = [
+ "bytemuck",
+ "solana-program",
+ "spl-discriminator 0.1.0 (git+https://github.com/openlab-openos/open-token/)",
+ "spl-pod 0.1.0 (git+https://github.com/openlab-openos/open-token/)",
+ "spl-program-error 0.3.0 (git+https://github.com/openlab-openos/open-token/)",
 ]
 
 [[package]]
@@ -7795,10 +7932,38 @@ checksum = "4c16ce3ba6979645fb7627aa1e435576172dd63088dc7848cb09aa331fa1fe4f"
 dependencies = [
  "borsh 0.10.3",
  "solana-program",
- "spl-discriminator",
- "spl-pod",
- "spl-program-error",
- "spl-type-length-value",
+ "spl-discriminator 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "spl-pod 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "spl-program-error 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "spl-type-length-value 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "spl-token-metadata-interface"
+version = "0.2.0"
+source = "git+https://github.com/openlab-openos/open-token/#56fffa2e63ec4518a41fd0f71b2589cb2bfeb65f"
+dependencies = [
+ "borsh 0.10.3",
+ "solana-program",
+ "spl-discriminator 0.1.0 (git+https://github.com/openlab-openos/open-token/)",
+ "spl-pod 0.1.0 (git+https://github.com/openlab-openos/open-token/)",
+ "spl-program-error 0.3.0 (git+https://github.com/openlab-openos/open-token/)",
+ "spl-type-length-value 0.3.0 (git+https://github.com/openlab-openos/open-token/)",
+]
+
+[[package]]
+name = "spl-transfer-hook-interface"
+version = "0.4.0"
+source = "git+https://github.com/openlab-openos/open-token/#56fffa2e63ec4518a41fd0f71b2589cb2bfeb65f"
+dependencies = [
+ "arrayref",
+ "bytemuck",
+ "solana-program",
+ "spl-discriminator 0.1.0 (git+https://github.com/openlab-openos/open-token/)",
+ "spl-pod 0.1.0 (git+https://github.com/openlab-openos/open-token/)",
+ "spl-program-error 0.3.0 (git+https://github.com/openlab-openos/open-token/)",
+ "spl-tlv-account-resolution 0.4.0",
+ "spl-type-length-value 0.3.0 (git+https://github.com/openlab-openos/open-token/)",
 ]
 
 [[package]]
@@ -7810,11 +7975,11 @@ dependencies = [
  "arrayref",
  "bytemuck",
  "solana-program",
- "spl-discriminator",
- "spl-pod",
- "spl-program-error",
- "spl-tlv-account-resolution",
- "spl-type-length-value",
+ "spl-discriminator 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "spl-pod 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "spl-program-error 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "spl-tlv-account-resolution 0.5.0",
+ "spl-type-length-value 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -7825,9 +7990,21 @@ checksum = "a468e6f6371f9c69aae760186ea9f1a01c2908351b06a5e0026d21cfc4d7ecac"
 dependencies = [
  "bytemuck",
  "solana-program",
- "spl-discriminator",
- "spl-pod",
- "spl-program-error",
+ "spl-discriminator 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "spl-pod 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "spl-program-error 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "spl-type-length-value"
+version = "0.3.0"
+source = "git+https://github.com/openlab-openos/open-token/#56fffa2e63ec4518a41fd0f71b2589cb2bfeb65f"
+dependencies = [
+ "bytemuck",
+ "solana-program",
+ "spl-discriminator 0.1.0 (git+https://github.com/openlab-openos/open-token/)",
+ "spl-pod 0.1.0 (git+https://github.com/openlab-openos/open-token/)",
+ "spl-program-error 0.3.0 (git+https://github.com/openlab-openos/open-token/)",
 ]
 
 [[package]]
