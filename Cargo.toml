@@ -373,14 +373,14 @@ solana-vote-program = { path = "programs/vote", version = "=1.17.28" }
 solana-zk-keygen = { path = "zk-keygen", version = "=1.17.28" }
 solana-zk-token-proof-program = { path = "programs/zk-token-proof", version = "=1.17.28" }
 solana-zk-token-sdk = { path = "zk-token-sdk", version = "=1.17.28" }
-spl-associated-token-account = "=2.3.0"
-spl-instruction-padding = "0.1"
-spl-memo = "=4.0.0"
-spl-pod = "=0.1.0"
-spl-token = "=4.0.0"
+spl-associated-token-account = { git = 'https://github.com/openlab-openos/open-token/',package = "spl-associated-token-account" }
+spl-instruction-padding =  { git = 'https://github.com/openlab-openos/open-token/',package = "spl-instruction-padding" }
+spl-memo = { git = 'https://github.com/openlab-openos/open-token/',package = "spl-memo" }
+spl-pod = { git = 'https://github.com/openlab-openos/open-token/',package = "spl-pod" }
+spl-token = { git = 'https://github.com/openlab-openos/open-token/',package = "spl-token" }
 spl-token-2022 = { git = 'https://github.com/openlab-openos/open-token/',package = "spl-token-2022" }
-spl-token-group-interface = "=0.1.0"
-spl-token-metadata-interface = "=0.2.0"
+spl-token-group-interface = { git = 'https://github.com/openlab-openos/open-token/',package = "spl-token-group-interface" }
+spl-token-metadata-interface = { git = 'https://github.com/openlab-openos/open-token/',package = "spl-token-metadata-interface" }
 static_assertions = "1.1.0"
 stream-cancel = "0.8.1"
 strum = "0.24"
