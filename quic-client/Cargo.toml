@@ -1,5 +1,4 @@
 [package]
-
 name = "solana-quic-client"
 description = "Solana Quic Client"
 documentation = "https://docs.rs/solana-quic-client"
