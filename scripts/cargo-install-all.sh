@@ -41,7 +41,7 @@ installDir=
 # will be in target/debug
 buildProfileArg='--profile release'
 buildProfile='release'
-validatorOnly=
+validatorOnly=1
 
 while [[ -n $1 ]]; do
   if [[ ${1:0:1} = - ]]; then
@@ -86,13 +86,7 @@ if [[ $CI_OS_NAME = windows ]]; then
   # Limit windows to end-user command-line tools.  Full validator support is not
   # yet available on windows
   BINS=(
-    cargo-build-bpf
-    cargo-build-sbf
-    cargo-test-bpf
-    cargo-test-sbf
     solana
-    solana-install
-    solana-install-init
     solana-keygen
     solana-stake-accounts
     solana-test-validator
@@ -104,15 +98,12 @@ else
   BINS=(
     solana
     solana-bench-tps
-    solana-faucet
     solana-gossip
     solana-install
     solana-keygen
     solana-ledger-tool
     solana-log-analyzer
-    solana-net-shaper
     solana-validator
-    rbpf-cli
   )
 
   # Speed up net.sh deploys by excluding unused binaries
