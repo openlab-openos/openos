@@ -1,5 +1,4 @@
 [package]
-
 name = "solana-local-cluster"
 description = "Blockchain, Rebuilt for Scale"
 documentation = "https://docs.rs/solana-local-cluster"
