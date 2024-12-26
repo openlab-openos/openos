@@ -1,5 +1,4 @@
 [package]
-
 name = "solana-thin-client"
 description = "Solana Thin Client"
 documentation = "https://docs.rs/solana-thin-client"
