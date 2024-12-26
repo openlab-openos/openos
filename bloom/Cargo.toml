@@ -1,4 +1,5 @@
 [package]
+
 name = "solana-bloom"
 description = "Solana bloom filter"
 documentation = "https://docs.rs/solana-bloom"
