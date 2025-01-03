@@ -1,5 +1,4 @@
 [package]
-
 name = "solana-bench-streamer"
 publish = false
 version = { workspace = true }
