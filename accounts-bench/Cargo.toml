@@ -1,5 +1,4 @@
 [package]
-
 name = "solana-accounts-bench"
 publish = false
 version = { workspace = true }
