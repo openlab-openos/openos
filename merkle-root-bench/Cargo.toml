@@ -1,5 +1,4 @@
 [package]
-
 name = "solana-merkle-root-bench"
 publish = false
 version = { workspace = true }
