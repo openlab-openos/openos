@@ -1,5 +1,4 @@
 [package]
-
 name = "solana-banking-bench"
 publish = false
 version = { workspace = true }
