@@ -1,5 +1,4 @@
 [package]
-
 name = "solana-banks-interface"
 description = "Solana banks RPC interface"
 documentation = "https://docs.rs/solana-banks-interface"
