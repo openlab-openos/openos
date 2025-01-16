@@ -1,5 +1,4 @@
 [package]
-
 name = "solana-rpc-client-nonce-utils"
 description = "Solana RPC Client Nonce Utilities"
 documentation = "https://docs.rs/solana-nonce-client"
