@@ -1,4 +1,5 @@
 [package]
+
 name = "solana-version"
 description = "Solana Version"
 documentation = "https://docs.rs/solana-version"
