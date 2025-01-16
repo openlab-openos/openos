@@ -1,5 +1,4 @@
 [package]
-
 name = "solana-memory-management"
 description = "Solana memory management"
 version = { workspace = true }
