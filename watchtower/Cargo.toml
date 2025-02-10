@@ -1,5 +1,4 @@
 [package]
-
 name = "solana-watchtower"
 description = "Blockchain, Rebuilt for Scale"
 documentation = "https://docs.rs/solana-watchtower"
