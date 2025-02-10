@@ -1,5 +1,4 @@
 [package]
-
 name = "solana-storage-bigtable"
 description = "Solana Storage BigTable"
 documentation = "https://docs.rs/solana-storage-bigtable"
