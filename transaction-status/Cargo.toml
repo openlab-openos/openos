@@ -1,5 +1,4 @@
 [package]
-
 name = "solana-transaction-status"
 description = "Solana transaction status types"
 documentation = "https://docs.rs/solana-transaction-status"
