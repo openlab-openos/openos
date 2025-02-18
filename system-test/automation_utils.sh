@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-
 # | source | this file
 # shellcheck disable=SC1090
 # shellcheck disable=SC1091
