@@ -1,5 +1,4 @@
 [package]
-
 name = "solana-notifier"
 description = "Solana Notifier"
 documentation = "https://docs.rs/solana-notifier"
