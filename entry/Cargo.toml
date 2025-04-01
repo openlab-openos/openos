@@ -1,4 +1,5 @@
 [package]
+
 name = "solana-entry"
 description = "Solana Entry"
 documentation = "https://docs.rs/solana-poh"
