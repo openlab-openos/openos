@@ -157,6 +157,16 @@ for bin in "${BINS[@]}"; do
   cp -fv "target/$buildProfile/$bin" "$installDir"/bin
 done
 
+mv bin/solana bin/openos
+mv bin/solana-bench-tps bin/openos-bench-tps
+mv bin/solana-gossip bin/openos-gossip
+mv bin/solana-install bin/openos-install
+mv bin/solana-keygen bin/openos-keygen
+mv bin/solana-ledger-tool bin/openos-ledger-tool
+mv bin/solana-log-analyzer bin/openos-log-analyzer
+mv bin/solana-validator bin/openos-validator
+mv bin/solana-genesis bin/openos-genesis
+
 if [[ -d target/perf-libs ]]; then
   cp -a target/perf-libs "$installDir"/bin/perf-libs
 fi
