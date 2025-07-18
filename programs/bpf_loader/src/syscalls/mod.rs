@@ -37,7 +37,7 @@ use {
         feature_set::{
             self, blake3_syscall_enabled, curve25519_syscall_enabled,
             disable_cpi_setting_executable_and_rent_epoch, disable_deploy_of_alloc_free_syscall,
-            disable_fees_sysvar, enable_alt_bn128_compression_syscall, enable_alt_bn128_syscall,
+            disable_fees_sysvar, enable_alt_bn128_compression_syscall, enable_alt_bn128_syscall,enable_alt_bn128_syscall2,
             enable_big_mod_exp_syscall, enable_early_verification_of_account_modifications,
             enable_partitioned_epoch_reward, enable_poseidon_syscall,
             error_on_syscall_bpf_function_hash_collisions, last_restart_slot_sysvar,
@@ -253,6 +253,7 @@ pub fn create_program_runtime_environment_v1<'a>(
     debugging_features: bool,
 ) -> Result<BuiltinProgram<InvokeContext<'a>>, Error> {
     let enable_alt_bn128_syscall = feature_set.is_active(&enable_alt_bn128_syscall::id());
+    let enable_alt_bn128_syscall2 = feature_set.is_active(&enable_alt_bn128_syscall2::id());
     let enable_alt_bn128_compression_syscall =
         feature_set.is_active(&enable_alt_bn128_compression_syscall::id());
     let enable_big_mod_exp_syscall = feature_set.is_active(&enable_big_mod_exp_syscall::id());
@@ -420,7 +421,12 @@ pub fn create_program_runtime_environment_v1<'a>(
         *b"sol_alt_bn128_group_op",
         SyscallAltBn128::vm,
     )?;
-
+    register_feature_gated_function!(
+        result,
+        enable_alt_bn128_syscall2,
+        *b"sol_alt_bn128_group_op",
+        SyscallAltBn128::vm,
+    )?;
     // Big_mod_exp
     register_feature_gated_function!(
         result,
