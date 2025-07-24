@@ -189,7 +189,6 @@ impl MessageProcessor {
         message: &SanitizedMessage,
         program_indices: &[Vec<IndexOfAccount>],
         transaction_context: &mut TransactionContext,
-        rent: Rent,
         log_collector: Option<Rc<RefCell<LogCollector>>>,
         programs_loaded_for_tx_batch: &LoadedProgramsForTxBatch,
         programs_modified_by_tx: &mut LoadedProgramsForTxBatch,
@@ -200,12 +199,11 @@ impl MessageProcessor {
         sysvar_cache: &SysvarCache,
         blockhash: Hash,
         lamports_per_signature: u64,
-        current_accounts_data_len: u64,
         accumulated_consumed_units: &mut u64,
-    ) -> Result<ProcessedMessageInfo, TransactionError> {
+    ) -> Result<(), TransactionError> {
         let mut invoke_context = InvokeContext::new(
             transaction_context,
-            rent,
+            Rent::default(),
             sysvar_cache,
             log_collector,
             compute_budget,
@@ -215,7 +213,7 @@ impl MessageProcessor {
             feature_set,
             blockhash,
             lamports_per_signature,
-            current_accounts_data_len,
+            0,
         );
 
         debug_assert_eq!(program_indices.len(), message.instructions().len());
@@ -314,9 +312,7 @@ impl MessageProcessor {
             result
                 .map_err(|err| TransactionError::InstructionError(instruction_index as u8, err))?;
         }
-        Ok(ProcessedMessageInfo {
-            accounts_data_len_delta: invoke_context.get_accounts_data_meter().delta(),
-        })
+        Ok(())
     }
 }
 
