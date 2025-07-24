@@ -157,6 +157,14 @@ pub enum AccountAddressFilter {
     Include, // only include addresses matching the filter
 }
 
+pub fn construct_instructions_account_ex(message: &SanitizedMessage) -> AccountSharedData {
+    AccountSharedData::from(Account {
+        data: construct_instructions_data(&message.decompile_instructions()),
+        owner: sysvar::id(),
+        ..Account::default()
+    })
+}
+
 impl Accounts {
     pub fn default_for_tests() -> Self {
         Self::new_empty(AccountsDb::default_for_tests())
