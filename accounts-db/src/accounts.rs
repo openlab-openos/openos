@@ -227,7 +227,7 @@ impl Accounts {
         }
     }
 
-    fn construct_instructions_account(message: &SanitizedMessage) -> AccountSharedData {
+    pub fn construct_instructions_account(message: &SanitizedMessage) -> AccountSharedData {
         AccountSharedData::from(Account {
             data: construct_instructions_data(&message.decompile_instructions()),
             owner: sysvar::id(),
