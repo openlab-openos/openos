@@ -85,6 +85,7 @@ uriparse = { workspace = true }
 wasm-bindgen = { workspace = true }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
+arbitrary = { workspace = true, features = ["derive"] }
 js-sys = { workspace = true }
 
 [dev-dependencies]
