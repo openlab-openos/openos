@@ -19,7 +19,6 @@ use {
         account::AccountSharedData,
         clock::Slot,
         epoch_schedule::EpochSchedule,
-        feature_set,
         native_token::sol_to_lamports,
         pubkey::Pubkey,
         rent::Rent,
@@ -349,9 +348,7 @@ fn main() {
         exit(1);
     });
 
-    let mut features_to_deactivate = pubkeys_of(&matches, "deactivate_feature").unwrap_or_default();
-    // Remove this when client support is ready for the enable_partitioned_epoch_reward feature
-    features_to_deactivate.push(feature_set::enable_partitioned_epoch_reward::id());
+    let features_to_deactivate = pubkeys_of(&matches, "deactivate_feature").unwrap_or_default();
 
     if TestValidatorGenesis::ledger_exists(&ledger_path) {
         for (name, long) in &[
@@ -371,7 +368,7 @@ fn main() {
     } else if random_mint {
         println_name_value(
             "\nNotice!",
-            "No wallet available. `solana airdrop` localnet BTG after creating one\n",
+            "No wallet available. `solana airdrop` localnet SOL after creating one\n",
         );
     }
 
