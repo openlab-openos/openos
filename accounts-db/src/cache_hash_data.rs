@@ -50,7 +50,7 @@ pub(crate) struct CacheHashDataFile {
 }
 
 impl CacheHashDataFileReference {
-    /// convert the open file refrence to a mmapped file that can be returned as a slice
+    /// convert the open file reference to a mmapped file that can be returned as a slice
     pub(crate) fn map(&self) -> Result<CacheHashDataFile, std::io::Error> {
         let file_len = self.file_len;
         let mut m1 = Measure::start("read_file");
@@ -193,8 +193,7 @@ impl CacheHashDataFile {
 pub(crate) struct CacheHashData {
     cache_dir: PathBuf,
     pre_existing_cache_files: Arc<Mutex<HashSet<PathBuf>>>,
-    /// Decides which old cache files to delete.  See `delete_old_cache_files()` for more info.
-    storages_start_slot: Option<Slot>,
+    deletion_policy: DeletionPolicy,
     pub stats: Arc<CacheHashDataStats>,
 }
 
@@ -206,7 +205,7 @@ impl Drop for CacheHashData {
 }
 
 impl CacheHashData {
-    pub(crate) fn new(cache_dir: PathBuf, storages_start_slot: Option<Slot>) -> CacheHashData {
+    pub(crate) fn new(cache_dir: PathBuf, deletion_policy: DeletionPolicy) -> CacheHashData {
         std::fs::create_dir_all(&cache_dir).unwrap_or_else(|err| {
             panic!("error creating cache dir {}: {err}", cache_dir.display())
         });
@@ -214,7 +213,7 @@ impl CacheHashData {
         let result = CacheHashData {
             cache_dir,
             pre_existing_cache_files: Arc::new(Mutex::new(HashSet::default())),
-            storages_start_slot,
+            deletion_policy,
             stats: Arc::default(),
         };
 
@@ -223,27 +222,30 @@ impl CacheHashData {
     }
 
     /// delete all pre-existing files that will not be used
-    fn delete_old_cache_files(&self) {
+    pub(crate) fn delete_old_cache_files(&self) {
         // all the renaming files in `pre_existing_cache_files` were *not* used for this
         // accounts hash calculation
         let mut old_cache_files =
             std::mem::take(&mut *self.pre_existing_cache_files.lock().unwrap());
 
-        // If `storages_start_slot` is None, we're doing a full accounts hash calculation, and thus
-        // all unused cache files can be deleted.
-        // If `storages_start_slot` is Some, we're doing an incremental accounts hash calculation,
-        // and we only want to delete the unused cache files *that IAH considered*.
-        if let Some(storages_start_slot) = self.storages_start_slot {
-            old_cache_files.retain(|old_cache_file| {
-                let Some(parsed_filename) = parse_filename(old_cache_file) else {
-                    // if parsing the cache filename fails, we *do* want to delete it
-                    return true;
-                };
+        match self.deletion_policy {
+            DeletionPolicy::AllUnused => {
+                // no additional work to do here; we will delete everything in `old_cache_files`
+            }
+            DeletionPolicy::UnusedAtLeast(storages_start_slot) => {
+                // when calculating an incremental accounts hash, we only want to delete the unused
+                // cache files *that IAH considered*
+                old_cache_files.retain(|old_cache_file| {
+                    let Some(parsed_filename) = parse_filename(old_cache_file) else {
+                        // if parsing the cache filename fails, we *do* want to delete it
+                        return true;
+                    };
 
-                // if the old cache file is in the incremental accounts hash calculation range,
-                // then delete it
-                parsed_filename.slot_range_start >= storages_start_slot
-            });
+                    // if the old cache file is in the incremental accounts hash calculation range,
+                    // then delete it
+                    parsed_filename.slot_range_start >= storages_start_slot
+                });
+            }
         }
 
         if !old_cache_files.is_empty() {
@@ -256,6 +258,7 @@ impl CacheHashData {
             }
         }
     }
+
     fn get_cache_files(&self) {
         if self.cache_dir.is_dir() {
             let dir = fs::read_dir(&self.cache_dir);
@@ -409,9 +412,22 @@ fn parse_filename(cache_filename: impl AsRef<Path>) -> Option<ParsedFilename> {
     })
 }
 
+/// Decides which old cache files to delete
+///
+/// See `delete_old_cache_files()` for more info.
+#[derive(Debug, Copy, Clone, Eq, PartialEq)]
+pub enum DeletionPolicy {
+    /// Delete *all* the unused cache files
+    /// Should be used when calculating full accounts hash
+    AllUnused,
+    /// Delete *only* the unused cache files with starting slot range *at least* this slot
+    /// Should be used when calculating incremental accounts hash
+    UnusedAtLeast(Slot),
+}
+
 #[cfg(test)]
 mod tests {
-    use {super::*, rand::Rng};
+    use {super::*, crate::accounts_hash::AccountHash, rand::Rng};
 
     impl CacheHashData {
         /// load from 'file_name' into 'accumulator'
@@ -476,7 +492,8 @@ mod tests {
                                 data_this_pass.push(this_bin_data);
                             }
                         }
-                        let cache = CacheHashData::new(cache_dir.clone(), None);
+                        let cache =
+                            CacheHashData::new(cache_dir.clone(), DeletionPolicy::AllUnused);
                         let file_name = PathBuf::from("test");
                         cache.save(&file_name, &data_this_pass).unwrap();
                         cache.get_cache_files();
@@ -552,7 +569,7 @@ mod tests {
                                 }
 
                                 CalculateHashIntermediate {
-                                    hash: solana_sdk::hash::Hash::new_unique(),
+                                    hash: AccountHash(solana_sdk::hash::Hash::new_unique()),
                                     lamports: ct as u64,
                                     pubkey: pk,
                                 }
