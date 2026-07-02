@@ -1467,7 +1467,7 @@ impl fmt::Display for CliStakeHistory {
                 if self.use_lamports_unit {
                     "lamports"
                 } else {
-                    "BTG"
+                    "SOL"
                 }
             )?;
         }
@@ -1899,7 +1899,7 @@ impl fmt::Display for CliAccountBalances {
                 f,
                 "{:<44}  {}",
                 account.address,
-                &format!("{} BTG", lamports_to_sol(account.lamports))
+                &format!("{} SOL", lamports_to_sol(account.lamports))
             )?;
         }
         Ok(())
@@ -1934,16 +1934,16 @@ impl VerboseDisplay for CliSupply {}
 
 impl fmt::Display for CliSupply {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        writeln_name_value(f, "Total:", &format!("{} BTG", lamports_to_sol(self.total)))?;
+        writeln_name_value(f, "Total:", &format!("{} SOL", lamports_to_sol(self.total)))?;
         writeln_name_value(
             f,
             "Circulating:",
-            &format!("{} BTG", lamports_to_sol(self.circulating)),
+            &format!("{} SOL", lamports_to_sol(self.circulating)),
         )?;
         writeln_name_value(
             f,
             "Non-Circulating:",
-            &format!("{} BTG", lamports_to_sol(self.non_circulating)),
+            &format!("{} SOL", lamports_to_sol(self.non_circulating)),
         )?;
         if self.print_accounts {
             writeln!(f)?;
@@ -2075,6 +2075,7 @@ impl fmt::Display for CliTokenAccount {
 #[serde(rename_all = "camelCase")]
 pub struct CliProgramId {
     pub program_id: String,
+    pub signature: Option<String>,
 }
 
 impl QuietDisplay for CliProgramId {}
@@ -2082,7 +2083,12 @@ impl VerboseDisplay for CliProgramId {}
 
 impl fmt::Display for CliProgramId {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        writeln_name_value(f, "Program Id:", &self.program_id)
+        writeln_name_value(f, "Program Id:", &self.program_id)?;
+        if let Some(ref signature) = self.signature {
+            writeln!(f)?;
+            writeln_name_value(f, "Signature:", signature)?;
+        }
+        Ok(())
     }
 }
 
@@ -2144,6 +2150,72 @@ impl fmt::Display for CliProgram {
             "Data Length:",
             &format!("{:?} ({:#x?}) bytes", self.data_len, self.data_len),
         )?;
+        Ok(())
+    }
+}
+
+#[derive(Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CliProgramV4 {
+    pub program_id: String,
+    pub owner: String,
+    pub authority: String,
+    pub last_deploy_slot: u64,
+    pub status: String,
+    pub data_len: usize,
+}
+impl QuietDisplay for CliProgramV4 {}
+impl VerboseDisplay for CliProgramV4 {}
+impl fmt::Display for CliProgramV4 {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        writeln!(f)?;
+        writeln_name_value(f, "Program Id:", &self.program_id)?;
+        writeln_name_value(f, "Owner:", &self.owner)?;
+        writeln_name_value(f, "Authority:", &self.authority)?;
+        writeln_name_value(
+            f,
+            "Last Deployed In Slot:",
+            &self.last_deploy_slot.to_string(),
+        )?;
+        writeln_name_value(f, "Status:", &self.status)?;
+        writeln_name_value(
+            f,
+            "Data Length:",
+            &format!("{:?} ({:#x?}) bytes", self.data_len, self.data_len),
+        )?;
+        Ok(())
+    }
+}
+
+#[derive(Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CliProgramsV4 {
+    pub programs: Vec<CliProgramV4>,
+}
+impl QuietDisplay for CliProgramsV4 {}
+impl VerboseDisplay for CliProgramsV4 {}
+impl fmt::Display for CliProgramsV4 {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        writeln!(f)?;
+        writeln!(
+            f,
+            "{}",
+            style(format!(
+                "{:<44} | {:<9} | {:<44} | {:<10}",
+                "Program Id", "Slot", "Authority", "Status"
+            ))
+            .bold()
+        )?;
+        for program in self.programs.iter() {
+            writeln!(
+                f,
+                "{}",
+                &format!(
+                    "{:<44} | {:<9} | {:<44} | {:<10}",
+                    program.program_id, program.last_deploy_slot, program.authority, program.status,
+                )
+            )?;
+        }
         Ok(())
     }
 }
@@ -2245,6 +2317,26 @@ impl fmt::Display for CliUpgradeableProgramClosed {
             "Closed Program Id {}, {} reclaimed",
             &self.program_id,
             &build_balance_message(self.lamports, self.use_lamports_unit, true)
+        )?;
+        Ok(())
+    }
+}
+
+#[derive(Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CliUpgradeableProgramExtended {
+    pub program_id: String,
+    pub additional_bytes: u32,
+}
+impl QuietDisplay for CliUpgradeableProgramExtended {}
+impl VerboseDisplay for CliUpgradeableProgramExtended {}
+impl fmt::Display for CliUpgradeableProgramExtended {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        writeln!(f)?;
+        writeln!(
+            f,
+            "Extended Program Id {} by {} bytes",
+            &self.program_id, self.additional_bytes,
         )?;
         Ok(())
     }
@@ -3287,12 +3379,12 @@ mod tests {
             ..CliVoteAccount::default()
         };
         let s = format!("{c}");
-        assert_eq!(s, "Account Balance: 0.00001 BTG\nValidator Identity: 11111111111111111111111111111111\nVote Authority: {}\nWithdraw Authority: \nCredits: 0\nCommission: 0%\nRoot Slot: ~\nRecent Timestamp: 1970-01-01T00:00:00Z from slot 0\nEpoch Rewards:\n  Epoch   Reward Slot  Time                        Amount              New Balance         Percent Change             APR  Commission\n  1       100          1970-01-01 00:00:00 UTC  ◎0.000000010        ◎0.000000100               11.000%          10.00%          1%\n  2       200          1970-01-12 13:46:40 UTC  ◎0.000000012        ◎0.000000100               11.000%          13.00%          1%\n");
+        assert_eq!(s, "Account Balance: 0.00001 SOL\nValidator Identity: 11111111111111111111111111111111\nVote Authority: {}\nWithdraw Authority: \nCredits: 0\nCommission: 0%\nRoot Slot: ~\nRecent Timestamp: 1970-01-01T00:00:00Z from slot 0\nEpoch Rewards:\n  Epoch   Reward Slot  Time                        Amount              New Balance         Percent Change             APR  Commission\n  1       100          1970-01-01 00:00:00 UTC  ◎0.000000010        ◎0.000000100               11.000%          10.00%          1%\n  2       200          1970-01-12 13:46:40 UTC  ◎0.000000012        ◎0.000000100               11.000%          13.00%          1%\n");
         println!("{s}");
 
         c.use_csv = true;
         let s = format!("{c}");
-        assert_eq!(s, "Account Balance: 0.00001 BTG\nValidator Identity: 11111111111111111111111111111111\nVote Authority: {}\nWithdraw Authority: \nCredits: 0\nCommission: 0%\nRoot Slot: ~\nRecent Timestamp: 1970-01-01T00:00:00Z from slot 0\nEpoch Rewards:\nEpoch,Reward Slot,Time,Amount,New Balance,Percent Change,APR,Commission\n1,100,1970-01-01 00:00:00 UTC,0.00000001,0.0000001,11%,10.00%,1%\n2,200,1970-01-12 13:46:40 UTC,0.000000012,0.0000001,11%,13.00%,1%\n");
+        assert_eq!(s, "Account Balance: 0.00001 SOL\nValidator Identity: 11111111111111111111111111111111\nVote Authority: {}\nWithdraw Authority: \nCredits: 0\nCommission: 0%\nRoot Slot: ~\nRecent Timestamp: 1970-01-01T00:00:00Z from slot 0\nEpoch Rewards:\nEpoch,Reward Slot,Time,Amount,New Balance,Percent Change,APR,Commission\n1,100,1970-01-01 00:00:00 UTC,0.00000001,0.0000001,11%,10.00%,1%\n2,200,1970-01-12 13:46:40 UTC,0.000000012,0.0000001,11%,13.00%,1%\n");
         println!("{s}");
     }
 }
