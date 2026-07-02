@@ -1467,7 +1467,7 @@ impl fmt::Display for CliStakeHistory {
                 if self.use_lamports_unit {
                     "lamports"
                 } else {
-                    "SOL"
+                    "BTG"
                 }
             )?;
         }
@@ -1899,7 +1899,7 @@ impl fmt::Display for CliAccountBalances {
                 f,
                 "{:<44}  {}",
                 account.address,
-                &format!("{} SOL", lamports_to_sol(account.lamports))
+                &format!("{} BTG", lamports_to_sol(account.lamports))
             )?;
         }
         Ok(())
@@ -1934,16 +1934,16 @@ impl VerboseDisplay for CliSupply {}
 
 impl fmt::Display for CliSupply {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        writeln_name_value(f, "Total:", &format!("{} SOL", lamports_to_sol(self.total)))?;
+        writeln_name_value(f, "Total:", &format!("{} BTG", lamports_to_sol(self.total)))?;
         writeln_name_value(
             f,
             "Circulating:",
-            &format!("{} SOL", lamports_to_sol(self.circulating)),
+            &format!("{} BTG", lamports_to_sol(self.circulating)),
         )?;
         writeln_name_value(
             f,
             "Non-Circulating:",
-            &format!("{} SOL", lamports_to_sol(self.non_circulating)),
+            &format!("{} BTG", lamports_to_sol(self.non_circulating)),
         )?;
         if self.print_accounts {
             writeln!(f)?;
@@ -3379,12 +3379,12 @@ mod tests {
             ..CliVoteAccount::default()
         };
         let s = format!("{c}");
-        assert_eq!(s, "Account Balance: 0.00001 SOL\nValidator Identity: 11111111111111111111111111111111\nVote Authority: {}\nWithdraw Authority: \nCredits: 0\nCommission: 0%\nRoot Slot: ~\nRecent Timestamp: 1970-01-01T00:00:00Z from slot 0\nEpoch Rewards:\n  Epoch   Reward Slot  Time                        Amount              New Balance         Percent Change             APR  Commission\n  1       100          1970-01-01 00:00:00 UTC  ◎0.000000010        ◎0.000000100               11.000%          10.00%          1%\n  2       200          1970-01-12 13:46:40 UTC  ◎0.000000012        ◎0.000000100               11.000%          13.00%          1%\n");
+        assert_eq!(s, "Account Balance: 0.00001 BTG\nValidator Identity: 11111111111111111111111111111111\nVote Authority: {}\nWithdraw Authority: \nCredits: 0\nCommission: 0%\nRoot Slot: ~\nRecent Timestamp: 1970-01-01T00:00:00Z from slot 0\nEpoch Rewards:\n  Epoch   Reward Slot  Time                        Amount              New Balance         Percent Change             APR  Commission\n  1       100          1970-01-01 00:00:00 UTC  ◎0.000000010        ◎0.000000100               11.000%          10.00%          1%\n  2       200          1970-01-12 13:46:40 UTC  ◎0.000000012        ◎0.000000100               11.000%          13.00%          1%\n");
         println!("{s}");
 
         c.use_csv = true;
         let s = format!("{c}");
-        assert_eq!(s, "Account Balance: 0.00001 SOL\nValidator Identity: 11111111111111111111111111111111\nVote Authority: {}\nWithdraw Authority: \nCredits: 0\nCommission: 0%\nRoot Slot: ~\nRecent Timestamp: 1970-01-01T00:00:00Z from slot 0\nEpoch Rewards:\nEpoch,Reward Slot,Time,Amount,New Balance,Percent Change,APR,Commission\n1,100,1970-01-01 00:00:00 UTC,0.00000001,0.0000001,11%,10.00%,1%\n2,200,1970-01-12 13:46:40 UTC,0.000000012,0.0000001,11%,13.00%,1%\n");
+        assert_eq!(s, "Account Balance: 0.00001 BTG\nValidator Identity: 11111111111111111111111111111111\nVote Authority: {}\nWithdraw Authority: \nCredits: 0\nCommission: 0%\nRoot Slot: ~\nRecent Timestamp: 1970-01-01T00:00:00Z from slot 0\nEpoch Rewards:\nEpoch,Reward Slot,Time,Amount,New Balance,Percent Change,APR,Commission\n1,100,1970-01-01 00:00:00 UTC,0.00000001,0.0000001,11%,10.00%,1%\n2,200,1970-01-12 13:46:40 UTC,0.000000012,0.0000001,11%,13.00%,1%\n");
         println!("{s}");
     }
 }
