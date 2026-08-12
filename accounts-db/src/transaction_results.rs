@@ -1,3 +1,9 @@
+// Re-exported since these have moved to `solana_sdk`.
+#[deprecated(
+    since = "1.18.0",
+    note = "Please use `solana_sdk::inner_instruction` types instead"
+)]
+pub use solana_sdk::inner_instruction::{InnerInstruction, InnerInstructionsList};
 use {
     crate::{
         nonce_info::{NonceFull, NonceInfo, NoncePartial},
@@ -11,7 +17,7 @@ use {
     },
 };
 
-pub type TransactionCheckResult = (transaction::Result<()>, Option<NoncePartial>);
+pub type TransactionCheckResult = (transaction::Result<()>, Option<NoncePartial>, Option<u64>);
 
 pub struct TransactionResults {
     pub fee_collection_results: Vec<transaction::Result<()>>,
@@ -34,7 +40,6 @@ pub enum TransactionExecutionResult {
     Executed {
         details: TransactionExecutionDetails,
         programs_modified_by_tx: Box<LoadedProgramsForTxBatch>,
-        programs_updated_only_for_global_cache: Box<LoadedProgramsForTxBatch>,
     },
     NotExecuted(TransactionError),
 }
@@ -106,22 +111,6 @@ impl DurableNonceFee {
     }
 }
 
-/// An ordered list of compiled instructions that were invoked during a
-/// transaction instruction
-pub type InnerInstructions = Vec<InnerInstruction>;
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct InnerInstruction {
-    pub instruction: CompiledInstruction,
-    /// Invocation stack height of this instruction. Instruction stack height
-    /// starts at 1 for transaction instructions.
-    pub stack_height: u8,
-}
-
-/// A list of compiled instructions that were invoked during each instruction of
-/// a transaction
-pub type InnerInstructionsList = Vec<InnerInstructions>;
-
 /// Extract the InnerInstructionsList from a TransactionContext
 pub fn inner_instructions_list_from_instruction_trace(
     transaction_context: &TransactionContext,
@@ -176,13 +165,16 @@ pub fn inner_instructions_list_from_instruction_trace(
 
 #[cfg(test)]
 mod tests {
-    use {super::*, solana_sdk::transaction_context::TransactionContext};
+    use {
+        super::*,
+        solana_sdk::{sysvar::rent::Rent, transaction_context::TransactionContext},
+    };
 
     #[test]
     fn test_inner_instructions_list_from_instruction_trace() {
         let instruction_trace = [1, 2, 1, 1, 2, 3, 2];
         let mut transaction_context =
-            TransactionContext::new(vec![], None, 3, instruction_trace.len());
+            TransactionContext::new(vec![], Rent::default(), 3, instruction_trace.len());
         for (index_in_trace, stack_height) in instruction_trace.into_iter().enumerate() {
             while stack_height <= transaction_context.get_instruction_context_stack_height() {
                 transaction_context.pop().unwrap();
