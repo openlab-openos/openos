@@ -19,14 +19,19 @@ use {
         BankStart, PohRecorderError, RecordTransactionsSummary, RecordTransactionsTimings,
         TransactionRecorder,
     },
-    solana_program_runtime::timings::ExecuteTimings,
+    solana_program_runtime::{
+        compute_budget_processor::process_compute_budget_instructions, timings::ExecuteTimings,
+    },
     solana_runtime::{
         bank::{Bank, LoadAndExecuteTransactionsOutput},
+        svm::account_loader::validate_fee_payer,
         transaction_batch::TransactionBatch,
     },
     solana_sdk::{
         clock::{Slot, FORWARD_TRANSACTIONS_TO_LEADER_AT_SLOT_OFFSET, MAX_PROCESSING_AGE},
-        feature_set, saturating_add_assign,
+        feature_set,
+        message::SanitizedMessage,
+        saturating_add_assign,
         timing::timestamp,
         transaction::{self, AddressLoader, SanitizedTransaction, TransactionError},
     },
@@ -41,29 +46,29 @@ pub const TARGET_NUM_TRANSACTIONS_PER_BATCH: usize = 64;
 
 pub struct ProcessTransactionBatchOutput {
     // The number of transactions filtered out by the cost model
-    cost_model_throttled_transactions_count: usize,
+    pub(crate) cost_model_throttled_transactions_count: usize,
     // Amount of time spent running the cost model
-    cost_model_us: u64,
+    pub(crate) cost_model_us: u64,
     pub execute_and_commit_transactions_output: ExecuteAndCommitTransactionsOutput,
 }
 
 pub struct ExecuteAndCommitTransactionsOutput {
     // Total number of transactions that were passed as candidates for execution
-    transactions_attempted_execution_count: usize,
+    pub(crate) transactions_attempted_execution_count: usize,
     // The number of transactions of that were executed. See description of in `ProcessTransactionsSummary`
     // for possible outcomes of execution.
-    executed_transactions_count: usize,
+    pub(crate) executed_transactions_count: usize,
     // Total number of the executed transactions that returned success/not
     // an error.
-    executed_with_successful_result_count: usize,
+    pub(crate) executed_with_successful_result_count: usize,
     // Transactions that either were not executed, or were executed and failed to be committed due
     // to the block ending.
     pub(crate) retryable_transaction_indexes: Vec<usize>,
     // A result that indicates whether transactions were successfully
     // committed into the Poh stream.
     pub commit_transactions_result: Result<Vec<CommitTransactionDetails>, PohRecorderError>,
-    execute_and_commit_timings: LeaderExecuteAndCommitTimings,
-    error_counters: TransactionErrorMetrics,
+    pub(crate) execute_and_commit_timings: LeaderExecuteAndCommitTimings,
+    pub(crate) error_counters: TransactionErrorMetrics,
 }
 
 pub struct Consumer {
@@ -150,7 +155,7 @@ impl Consumer {
         banking_stage_stats: &BankingStageStats,
         consumed_buffered_packets_count: &mut usize,
         rebuffered_packet_count: &mut usize,
-        packets_to_process: &Vec<Arc<ImmutableDeserializedPacket>>,
+        packets_to_process: &[Arc<ImmutableDeserializedPacket>],
     ) -> Option<Vec<usize>> {
         if payload.reached_end_of_slot {
             return None;
@@ -394,9 +399,26 @@ impl Consumer {
         txs: &[SanitizedTransaction],
         chunk_offset: usize,
     ) -> ProcessTransactionBatchOutput {
-        // No filtering before QoS - transactions should have been sanitized immediately prior to this call
-        let pre_results = std::iter::repeat(Ok(()));
-        self.process_and_record_transactions_with_pre_results(bank, txs, chunk_offset, pre_results)
+        let mut error_counters = TransactionErrorMetrics::default();
+        let pre_results = vec![Ok(()); txs.len()];
+        let check_results =
+            bank.check_transactions(txs, &pre_results, MAX_PROCESSING_AGE, &mut error_counters);
+        let check_results = check_results
+            .into_iter()
+            .map(|(result, _nonce, _lamports)| result);
+        let mut output = self.process_and_record_transactions_with_pre_results(
+            bank,
+            txs,
+            chunk_offset,
+            check_results,
+        );
+
+        // Accumulate error counters from the initial checks into final results
+        output
+            .execute_and_commit_transactions_output
+            .error_counters
+            .accumulate(&error_counters);
+        output
     }
 
     pub fn process_and_record_aged_transactions(
@@ -554,8 +576,7 @@ impl Consumer {
                 transaction_status_sender_enabled,
                 &mut execute_and_commit_timings.execute_timings,
                 None, // account_overrides
-                self.log_messages_bytes_limit,
-                true,
+                self.log_messages_bytes_limit
             ));
         execute_and_commit_timings.load_execute_us = load_execute_us;
 
@@ -588,6 +609,13 @@ impl Consumer {
         let (freeze_lock, freeze_lock_us) = measure_us!(bank.freeze_lock());
         execute_and_commit_timings.freeze_lock_us = freeze_lock_us;
 
+        // In order to avoid a race condition, leaders must get the last
+        // blockhash *before* recording transactions because recording
+        // transactions will only succeed if the block max tick height hasn't
+        // been reached yet. If they get the last blockhash *after* recording
+        // transactions, the block max tick height could have already been
+        // reached and the blockhash queue could have already been updated with
+        // a new blockhash.
         let ((last_blockhash, lamports_per_signature), last_blockhash_us) =
             measure_us!(bank.last_blockhash_and_lamports_per_signature());
         execute_and_commit_timings.last_blockhash_us = last_blockhash_us;
@@ -678,6 +706,39 @@ impl Consumer {
         }
     }
 
+    pub fn check_fee_payer_unlocked(
+        bank: &Bank,
+        message: &SanitizedMessage,
+        error_counters: &mut TransactionErrorMetrics,
+    ) -> Result<(), TransactionError> {
+        let fee_payer = message.fee_payer();
+        let budget_limits =
+            process_compute_budget_instructions(message.program_instructions_iter())?.into();
+        let fee = bank.fee_structure.calculate_fee(
+            message,
+            bank.get_lamports_per_signature(),
+            &budget_limits,
+            bank.feature_set.is_active(
+                &feature_set::include_loaded_accounts_data_size_in_fee_calculation::id(),
+            ),
+        );
+        let (mut fee_payer_account, _slot) = bank
+            .rc
+            .accounts
+            .accounts_db
+            .load_with_fixed_root(&bank.ancestors, fee_payer)
+            .ok_or(TransactionError::AccountNotFound)?;
+
+        validate_fee_payer(
+            fee_payer,
+            &mut fee_payer_account,
+            0,
+            error_counters,
+            bank.rent_collector(),
+            fee,
+        )
+    }
+
     fn accumulate_execute_units_and_time(execute_timings: &ExecuteTimings) -> (u64, u64) {
         execute_timings.details.per_program_timings.values().fold(
             (0, 0),
@@ -728,7 +789,7 @@ impl Consumer {
         valid_txs
             .iter()
             .enumerate()
-            .filter_map(|(index, (x, _h))| if x.is_ok() { Some(index) } else { None })
+            .filter_map(|(index, (x, _h, _lamports))| if x.is_ok() { Some(index) } else { None })
             .collect_vec()
     }
 }
@@ -754,23 +815,32 @@ mod tests {
             leader_schedule_cache::LeaderScheduleCache,
         },
         solana_perf::packet::Packet,
-        solana_poh::poh_recorder::{PohRecorder, WorkingBankEntry},
+        solana_poh::poh_recorder::{PohRecorder, Record, WorkingBankEntry},
         solana_program_runtime::timings::ProgramTiming,
         solana_rpc::transaction_status_service::TransactionStatusService,
         solana_runtime::prioritization_fee_cache::PrioritizationFeeCache,
         solana_sdk::{
             account::AccountSharedData,
+            account_utils::StateMut,
             address_lookup_table::{
                 self,
                 state::{AddressLookupTable, LookupTableMeta},
             },
+            compute_budget,
+            fee_calculator::FeeCalculator,
+            hash::Hash,
             instruction::InstructionError,
-            message::{v0, v0::MessageAddressTableLookup, MessageHeader, VersionedMessage},
+            message::{
+                v0::{self, MessageAddressTableLookup},
+                Message, MessageHeader, VersionedMessage,
+            },
+            nonce::{self, state::DurableNonce},
+            nonce_account::verify_nonce_account,
             poh_config::PohConfig,
             pubkey::Pubkey,
             signature::Keypair,
             signer::Signer,
-            system_transaction,
+            system_instruction, system_program, system_transaction,
             transaction::{MessageHash, Transaction, VersionedTransaction},
         },
         solana_transaction_status::{TransactionStatusMeta, VersionedTransactionWithStatusMeta},
@@ -781,7 +851,8 @@ mod tests {
                 atomic::{AtomicBool, AtomicU64},
                 RwLock,
             },
-            thread::JoinHandle,
+            thread::{Builder, JoinHandle},
+            time::Duration,
         },
     };
 
@@ -808,7 +879,10 @@ mod tests {
         let recorder = poh_recorder.new_recorder();
         let poh_recorder = Arc::new(RwLock::new(poh_recorder));
 
-        poh_recorder.write().unwrap().set_bank(bank.clone(), false);
+        poh_recorder
+            .write()
+            .unwrap()
+            .set_bank_for_test(bank.clone());
 
         let poh_simulator = simulate_poh(record_receiver, &poh_recorder);
 
@@ -847,6 +921,20 @@ mod tests {
         }
     }
 
+    fn store_nonce_account(
+        bank: &Bank,
+        account_address: Pubkey,
+        nonce_state: nonce::State,
+    ) -> AccountSharedData {
+        let mut account = AccountSharedData::new(1, nonce::State::size(), &system_program::id());
+        account
+            .set_state(&nonce::state::Versions::new(nonce_state))
+            .unwrap();
+        bank.store_account(&account_address, &account);
+
+        account
+    }
+
     fn store_address_lookup_table(
         bank: &Bank,
         account_address: Pubkey,
@@ -869,10 +957,11 @@ mod tests {
         Arc<Bank>,
         Arc<RwLock<PohRecorder>>,
         Receiver<WorkingBankEntry>,
+        GenesisConfigInfo,
         JoinHandle<()>,
     ) {
         Blockstore::destroy(ledger_path).unwrap();
-        let genesis_config_info = create_slow_genesis_config(10_000);
+        let genesis_config_info = create_slow_genesis_config(100_000_000);
         let GenesisConfigInfo {
             genesis_config,
             mint_keypair,
@@ -880,7 +969,7 @@ mod tests {
         } = &genesis_config_info;
         let blockstore =
             Blockstore::open(ledger_path).expect("Expected to be able to open database ledger");
-        let bank = Arc::new(Bank::new_no_wallclock_throttle_for_tests(genesis_config));
+        let bank = Bank::new_no_wallclock_throttle_for_tests(genesis_config).0;
         let exit = Arc::new(AtomicBool::default());
         let (poh_recorder, entry_receiver, record_receiver) = PohRecorder::new(
             bank.tick_height(),
@@ -912,6 +1001,7 @@ mod tests {
             bank,
             poh_recorder,
             entry_receiver,
+            genesis_config_info,
             poh_simulator,
         )
     }
@@ -936,7 +1026,7 @@ mod tests {
             mint_keypair,
             ..
         } = create_slow_genesis_config(10_000);
-        let bank = Arc::new(Bank::new_no_wallclock_throttle_for_tests(&genesis_config));
+        let bank = Bank::new_no_wallclock_throttle_for_tests(&genesis_config).0;
         let pubkey = solana_sdk::pubkey::new_rand();
 
         let transactions = sanitize_transactions(vec![system_transaction::transfer(
@@ -967,7 +1057,10 @@ mod tests {
 
             let poh_simulator = simulate_poh(record_receiver, &poh_recorder);
 
-            poh_recorder.write().unwrap().set_bank(bank.clone(), false);
+            poh_recorder
+                .write()
+                .unwrap()
+                .set_bank_for_test(bank.clone());
             let (replay_vote_sender, _replay_vote_receiver) = unbounded();
             let committer = Committer::new(
                 None,
@@ -1055,6 +1148,163 @@ mod tests {
     }
 
     #[test]
+    fn test_bank_nonce_update_blockhash_queried_before_transaction_record() {
+        solana_logger::setup();
+        let GenesisConfigInfo {
+            genesis_config,
+            mint_keypair,
+            ..
+        } = create_slow_genesis_config(10_000);
+        let bank = Bank::new_no_wallclock_throttle_for_tests(&genesis_config).0;
+        let pubkey = Pubkey::new_unique();
+
+        // setup nonce account with a durable nonce different from the current
+        // bank so that it can be advanced in this bank
+        let durable_nonce = DurableNonce::from_blockhash(&Hash::new_unique());
+        let nonce_hash = *durable_nonce.as_hash();
+        let nonce_pubkey = Pubkey::new_unique();
+        let nonce_state = nonce::State::Initialized(nonce::state::Data {
+            authority: mint_keypair.pubkey(),
+            durable_nonce,
+            fee_calculator: FeeCalculator::new(5000),
+        });
+
+        store_nonce_account(&bank, nonce_pubkey, nonce_state);
+
+        // setup a valid nonce tx which will fail during execution
+        let transactions = sanitize_transactions(vec![system_transaction::nonced_transfer(
+            &mint_keypair,
+            &pubkey,
+            u64::MAX,
+            &nonce_pubkey,
+            &mint_keypair,
+            nonce_hash,
+        )]);
+
+        let ledger_path = get_tmp_ledger_path_auto_delete!();
+        {
+            let blockstore = Blockstore::open(ledger_path.path())
+                .expect("Expected to be able to open database ledger");
+            let (poh_recorder, entry_receiver, record_receiver) = PohRecorder::new(
+                bank.tick_height(),
+                bank.last_blockhash(),
+                bank.clone(),
+                Some((4, 4)),
+                bank.ticks_per_slot(),
+                &pubkey,
+                Arc::new(blockstore),
+                &Arc::new(LeaderScheduleCache::new_from_bank(&bank)),
+                &PohConfig::default(),
+                Arc::new(AtomicBool::new(false)),
+            );
+            let recorder = poh_recorder.new_recorder();
+            let poh_recorder = Arc::new(RwLock::new(poh_recorder));
+
+            fn poh_tick_before_returning_record_response(
+                record_receiver: Receiver<Record>,
+                poh_recorder: Arc<RwLock<PohRecorder>>,
+            ) -> JoinHandle<()> {
+                let is_exited = poh_recorder.read().unwrap().is_exited.clone();
+                let tick_producer = Builder::new()
+                    .name("solana-simulate_poh".to_string())
+                    .spawn(move || loop {
+                        let timeout = Duration::from_millis(10);
+                        let record = record_receiver.recv_timeout(timeout);
+                        if let Ok(record) = record {
+                            let record_response = poh_recorder.write().unwrap().record(
+                                record.slot,
+                                record.mixin,
+                                record.transactions,
+                            );
+                            poh_recorder.write().unwrap().tick();
+                            if record.sender.send(record_response).is_err() {
+                                panic!("Error returning mixin hash");
+                            }
+                        }
+                        if is_exited.load(Ordering::Relaxed) {
+                            break;
+                        }
+                    });
+                tick_producer.unwrap()
+            }
+
+            // Simulate a race condition by setting up poh to do the last tick
+            // right before returning the transaction record response so that
+            // bank blockhash queue is updated before transactions are
+            // committed.
+            let poh_simulator =
+                poh_tick_before_returning_record_response(record_receiver, poh_recorder.clone());
+
+            poh_recorder
+                .write()
+                .unwrap()
+                .set_bank_for_test(bank.clone());
+
+            // Tick up to max tick height - 1 so that only one tick remains
+            // before recording transactions to poh
+            while poh_recorder.read().unwrap().tick_height() != bank.max_tick_height() - 1 {
+                poh_recorder.write().unwrap().tick();
+            }
+
+            let (replay_vote_sender, _replay_vote_receiver) = unbounded();
+            let committer = Committer::new(
+                None,
+                replay_vote_sender,
+                Arc::new(PrioritizationFeeCache::new(0u64)),
+            );
+            let consumer = Consumer::new(committer, recorder, QosService::new(1), None);
+
+            let process_transactions_batch_output =
+                consumer.process_and_record_transactions(&bank, &transactions, 0);
+            let ExecuteAndCommitTransactionsOutput {
+                transactions_attempted_execution_count,
+                executed_transactions_count,
+                executed_with_successful_result_count,
+                commit_transactions_result,
+                ..
+            } = process_transactions_batch_output.execute_and_commit_transactions_output;
+
+            assert_eq!(transactions_attempted_execution_count, 1);
+            assert_eq!(executed_transactions_count, 1);
+            assert_eq!(executed_with_successful_result_count, 0);
+            assert!(commit_transactions_result.is_ok());
+
+            // Ensure that poh did the last tick after recording transactions
+            assert_eq!(
+                poh_recorder.read().unwrap().tick_height(),
+                bank.max_tick_height()
+            );
+
+            let mut done = false;
+            // read entries until I find mine, might be ticks...
+            while let Ok((_bank, (entry, _tick_height))) = entry_receiver.recv() {
+                if !entry.is_tick() {
+                    assert_eq!(entry.transactions.len(), transactions.len());
+                    done = true;
+                    break;
+                }
+            }
+            assert!(done);
+
+            poh_recorder
+                .read()
+                .unwrap()
+                .is_exited
+                .store(true, Ordering::Relaxed);
+            let _ = poh_simulator.join();
+
+            // check that the nonce was advanced to the current bank's last blockhash
+            // rather than the current bank's blockhash as would occur had the update
+            // blockhash been queried _after_ transaction recording
+            let expected_nonce = DurableNonce::from_blockhash(&genesis_config.hash());
+            let expected_nonce_hash = expected_nonce.as_hash();
+            let nonce_account = bank.get_account(&nonce_pubkey).unwrap();
+            assert!(verify_nonce_account(&nonce_account, expected_nonce_hash).is_some());
+        }
+        Blockstore::destroy(ledger_path.path()).unwrap();
+    }
+
+    #[test]
     fn test_bank_process_and_record_transactions_all_unexecuted() {
         solana_logger::setup();
         let GenesisConfigInfo {
@@ -1062,7 +1312,7 @@ mod tests {
             mint_keypair,
             ..
         } = create_slow_genesis_config(10_000);
-        let bank = Arc::new(Bank::new_no_wallclock_throttle_for_tests(&genesis_config));
+        let bank = Bank::new_no_wallclock_throttle_for_tests(&genesis_config).0;
         let pubkey = solana_sdk::pubkey::new_rand();
 
         let transactions = {
@@ -1094,7 +1344,10 @@ mod tests {
 
             let poh_simulator = simulate_poh(record_receiver, &poh_recorder);
 
-            poh_recorder.write().unwrap().set_bank(bank.clone(), false);
+            poh_recorder
+                .write()
+                .unwrap()
+                .set_bank_for_test(bank.clone());
             let (replay_vote_sender, _replay_vote_receiver) = unbounded();
             let committer = Committer::new(
                 None,
@@ -1152,11 +1405,12 @@ mod tests {
             mint_keypair,
             ..
         } = create_slow_genesis_config(10_000);
-        let mut bank = Bank::new_no_wallclock_throttle_for_tests(&genesis_config);
+        let mut bank = Bank::new_for_tests(&genesis_config);
+        bank.ns_per_slot = std::u128::MAX;
         if !apply_cost_tracker_during_replay_enabled {
             bank.deactivate_feature(&feature_set::apply_cost_tracker_during_replay::id());
         }
-        let bank = Arc::new(bank);
+        let bank = bank.wrap_with_bank_forks_for_tests().0;
         let pubkey = solana_sdk::pubkey::new_rand();
 
         let ledger_path = get_tmp_ledger_path_auto_delete!();
@@ -1180,7 +1434,10 @@ mod tests {
 
             let poh_simulator = simulate_poh(record_receiver, &poh_recorder);
 
-            poh_recorder.write().unwrap().set_bank(bank.clone(), false);
+            poh_recorder
+                .write()
+                .unwrap()
+                .set_bank_for_test(bank.clone());
             let (replay_vote_sender, _replay_vote_receiver) = unbounded();
             let committer = Committer::new(
                 None,
@@ -1253,7 +1510,7 @@ mod tests {
             let commit_transactions_result = commit_transactions_result.unwrap();
             assert_eq!(commit_transactions_result.len(), 2);
             assert_matches!(
-                commit_transactions_result.get(0),
+                commit_transactions_result.first(),
                 Some(CommitTransactionDetails::Committed { .. })
             );
             assert_matches!(
@@ -1263,7 +1520,7 @@ mod tests {
             assert_eq!(retryable_transaction_indexes, vec![1]);
 
             let expected_block_cost = if !apply_cost_tracker_during_replay_enabled {
-                let actual_bpf_execution_cost = match commit_transactions_result.get(0).unwrap() {
+                let actual_bpf_execution_cost = match commit_transactions_result.first().unwrap() {
                     CommitTransactionDetails::Committed { compute_units } => *compute_units,
                     CommitTransactionDetails::NotCommitted => {
                         unreachable!()
@@ -1301,7 +1558,7 @@ mod tests {
             mint_keypair,
             ..
         } = create_slow_genesis_config(10_000);
-        let bank = Arc::new(Bank::new_no_wallclock_throttle_for_tests(&genesis_config));
+        let bank = Bank::new_no_wallclock_throttle_for_tests(&genesis_config).0;
         let pubkey = solana_sdk::pubkey::new_rand();
         let pubkey1 = solana_sdk::pubkey::new_rand();
 
@@ -1329,7 +1586,10 @@ mod tests {
             let recorder = poh_recorder.new_recorder();
             let poh_recorder = Arc::new(RwLock::new(poh_recorder));
 
-            poh_recorder.write().unwrap().set_bank(bank.clone(), false);
+            poh_recorder
+                .write()
+                .unwrap()
+                .set_bank_for_test(bank.clone());
 
             let poh_simulator = simulate_poh(record_receiver, &poh_recorder);
 
@@ -1376,7 +1636,7 @@ mod tests {
             mint_keypair,
             ..
         } = create_slow_genesis_config(lamports);
-        let bank = Arc::new(Bank::new_no_wallclock_throttle_for_tests(&genesis_config));
+        let bank = Bank::new_no_wallclock_throttle_for_tests(&genesis_config).0;
         // set cost tracker limits to MAX so it will not filter out TXs
         bank.write_cost_tracker()
             .unwrap()
@@ -1437,7 +1697,7 @@ mod tests {
             mint_keypair,
             ..
         } = create_slow_genesis_config(10_000);
-        let bank = Arc::new(Bank::new_no_wallclock_throttle_for_tests(&genesis_config));
+        let bank = Bank::new_no_wallclock_throttle_for_tests(&genesis_config).0;
         // set cost tracker limits to MAX so it will not filter out TXs
         bank.write_cost_tracker()
             .unwrap()
@@ -1496,7 +1756,7 @@ mod tests {
             mint_keypair,
             ..
         } = create_slow_genesis_config(10_000);
-        let bank = Arc::new(Bank::new_no_wallclock_throttle_for_tests(&genesis_config));
+        let bank = Bank::new_no_wallclock_throttle_for_tests(&genesis_config).0;
 
         let pubkey = solana_sdk::pubkey::new_rand();
 
@@ -1578,7 +1838,7 @@ mod tests {
         } = create_slow_genesis_config(solana_sdk::native_token::sol_to_lamports(1000.0));
         genesis_config.rent.lamports_per_byte_year = 50;
         genesis_config.rent.exemption_threshold = 2.0;
-        let bank = Arc::new(Bank::new_no_wallclock_throttle_for_tests(&genesis_config));
+        let bank = Bank::new_no_wallclock_throttle_for_tests(&genesis_config).0;
         let pubkey = solana_sdk::pubkey::new_rand();
         let pubkey1 = solana_sdk::pubkey::new_rand();
         let keypair1 = Keypair::new();
@@ -1629,7 +1889,10 @@ mod tests {
 
             let poh_simulator = simulate_poh(record_receiver, &poh_recorder);
 
-            poh_recorder.write().unwrap().set_bank(bank.clone(), false);
+            poh_recorder
+                .write()
+                .unwrap()
+                .set_bank_for_test(bank.clone());
 
             let shreds = entries_to_test_shreds(
                 &entries,
@@ -1706,14 +1969,19 @@ mod tests {
             mint_keypair,
             ..
         } = create_slow_genesis_config(10_000);
-        let bank = Arc::new(Bank::new_no_wallclock_throttle_for_tests(&genesis_config));
+        let (bank, bank_forks) = Bank::new_no_wallclock_throttle_for_tests(&genesis_config);
         let keypair = Keypair::new();
 
         let address_table_key = Pubkey::new_unique();
         let address_table_state = generate_new_address_lookup_table(None, 2);
         store_address_lookup_table(&bank, address_table_key, address_table_state);
 
-        let bank = Arc::new(Bank::new_from_parent(bank, &Pubkey::new_unique(), 1));
+        let new_bank = Bank::new_from_parent(bank, &Pubkey::new_unique(), 2);
+        let bank = bank_forks
+            .write()
+            .unwrap()
+            .insert(new_bank)
+            .clone_without_scheduler();
         let message = VersionedMessage::V0(v0::Message {
             header: MessageHeader {
                 num_required_signatures: 1,
@@ -1766,7 +2034,10 @@ mod tests {
 
             let poh_simulator = simulate_poh(record_receiver, &poh_recorder);
 
-            poh_recorder.write().unwrap().set_bank(bank.clone(), false);
+            poh_recorder
+                .write()
+                .unwrap()
+                .set_bank_for_test(bank.clone());
 
             let shreds = entries_to_test_shreds(
                 &entries,
@@ -1837,9 +2108,9 @@ mod tests {
     fn test_consume_buffered_packets() {
         let ledger_path = get_tmp_ledger_path_auto_delete!();
         {
-            let (transactions, bank, poh_recorder, _entry_receiver, poh_simulator) =
+            let (transactions, bank, poh_recorder, _entry_receiver, _, poh_simulator) =
                 setup_conflicting_transactions(ledger_path.path());
-            let recorder = poh_recorder.read().unwrap().new_recorder();
+            let recorder: TransactionRecorder = poh_recorder.read().unwrap().new_recorder();
             let num_conflicting_transactions = transactions.len();
             let deserialized_packets = transactions_to_deserialized_packets(&transactions).unwrap();
             assert_eq!(deserialized_packets.len(), num_conflicting_transactions);
@@ -1865,7 +2136,7 @@ mod tests {
             assert_eq!(buffered_packet_batches.len(), num_conflicting_transactions);
             // When the working bank in poh_recorder is Some, all packets should be processed.
             // Multi-Iterator will process them 1-by-1 if all txs are conflicting.
-            poh_recorder.write().unwrap().set_bank(bank, false);
+            poh_recorder.write().unwrap().set_bank_for_test(bank);
             let bank_start = poh_recorder.read().unwrap().bank_start().unwrap();
             let banking_stage_stats = BankingStageStats::default();
             consumer.consume_buffered_packets(
@@ -1910,7 +2181,7 @@ mod tests {
     fn test_consume_buffered_packets_sanitization_error() {
         let ledger_path = get_tmp_ledger_path_auto_delete!();
         {
-            let (mut transactions, bank, poh_recorder, _entry_receiver, poh_simulator) =
+            let (mut transactions, bank, poh_recorder, _entry_receiver, _, poh_simulator) =
                 setup_conflicting_transactions(ledger_path.path());
             let duplicate_account_key = transactions[0].message.account_keys[0];
             transactions[0]
@@ -1943,7 +2214,7 @@ mod tests {
             assert_eq!(buffered_packet_batches.len(), num_conflicting_transactions);
             // When the working bank in poh_recorder is Some, all packets should be processed.
             // Multi-Iterator will process them 1-by-1 if all txs are conflicting.
-            poh_recorder.write().unwrap().set_bank(bank, false);
+            poh_recorder.write().unwrap().set_bank_for_test(bank);
             let bank_start = poh_recorder.read().unwrap().bank_start().unwrap();
             consumer.consume_buffered_packets(
                 &bank_start,
@@ -1966,7 +2237,7 @@ mod tests {
     fn test_consume_buffered_packets_retryable() {
         let ledger_path = get_tmp_ledger_path_auto_delete!();
         {
-            let (transactions, bank, poh_recorder, _entry_receiver, poh_simulator) =
+            let (transactions, bank, poh_recorder, _entry_receiver, _, poh_simulator) =
                 setup_conflicting_transactions(ledger_path.path());
             let recorder = poh_recorder.read().unwrap().new_recorder();
             let num_conflicting_transactions = transactions.len();
@@ -1996,7 +2267,10 @@ mod tests {
             // When the working bank in poh_recorder is Some, all packets should be processed
             // except except for retryable errors. Manually take the lock of a transaction to
             // simulate another thread processing a transaction with that lock.
-            poh_recorder.write().unwrap().set_bank(bank.clone(), false);
+            poh_recorder
+                .write()
+                .unwrap()
+                .set_bank_for_test(bank.clone());
             let bank_start = poh_recorder.read().unwrap().bank_start().unwrap();
 
             let lock_account = transactions[0].message.account_keys[1];
@@ -2043,6 +2317,109 @@ mod tests {
             assert_eq!(
                 bank_start.working_bank.transaction_entries_count(),
                 num_conflicting_transactions as u64 - 1
+            );
+
+            poh_recorder
+                .read()
+                .unwrap()
+                .is_exited
+                .store(true, Ordering::Relaxed);
+            let _ = poh_simulator.join();
+        }
+        Blockstore::destroy(ledger_path.path()).unwrap();
+    }
+
+    #[test]
+    fn test_consume_buffered_packets_batch_priority_guard() {
+        let ledger_path = get_tmp_ledger_path_auto_delete!();
+        {
+            let (_, bank, poh_recorder, _entry_receiver, genesis_config_info, poh_simulator) =
+                setup_conflicting_transactions(ledger_path.path());
+            let recorder = poh_recorder.read().unwrap().new_recorder();
+
+            // Setup transactions:
+            // [(AB), (BC), (CD)]
+            // (AB) and (BC) are conflicting, and cannot go into the same batch.
+            // (AB) and (CD) are not conflict. However, (CD) should not be able to take locks needed by (BC).
+            let keypair_a = Keypair::new();
+            let keypair_b = Keypair::new();
+            let keypair_c = Keypair::new();
+            let keypair_d = Keypair::new();
+            for keypair in &[&keypair_a, &keypair_b, &keypair_c, &keypair_d] {
+                bank.transfer(5_000, &genesis_config_info.mint_keypair, &keypair.pubkey())
+                    .unwrap();
+            }
+
+            let make_prioritized_transfer =
+                |from: &Keypair, to, lamports, priority| -> Transaction {
+                    let ixs = vec![
+                        system_instruction::transfer(&from.pubkey(), to, lamports),
+                        compute_budget::ComputeBudgetInstruction::set_compute_unit_price(priority),
+                    ];
+                    let message = Message::new(&ixs, Some(&from.pubkey()));
+                    Transaction::new(&[from], message, bank.last_blockhash())
+                };
+
+            let transactions = vec![
+                make_prioritized_transfer(&keypair_a, &keypair_b.pubkey(), 1, 3),
+                make_prioritized_transfer(&keypair_b, &keypair_c.pubkey(), 1, 2),
+                make_prioritized_transfer(&keypair_c, &keypair_d.pubkey(), 1, 1),
+            ];
+
+            let num_conflicting_transactions = transactions.len();
+            let deserialized_packets = transactions_to_deserialized_packets(&transactions).unwrap();
+            assert_eq!(deserialized_packets.len(), num_conflicting_transactions);
+            let mut buffered_packet_batches =
+                UnprocessedTransactionStorage::new_transaction_storage(
+                    UnprocessedPacketBatches::from_iter(
+                        deserialized_packets,
+                        num_conflicting_transactions,
+                    ),
+                    ThreadType::Transactions,
+                );
+
+            let (replay_vote_sender, _replay_vote_receiver) = unbounded();
+            let committer = Committer::new(
+                None,
+                replay_vote_sender,
+                Arc::new(PrioritizationFeeCache::new(0u64)),
+            );
+            let consumer = Consumer::new(committer, recorder, QosService::new(1), None);
+
+            // When the working bank in poh_recorder is None, no packets should be processed (consume will not be called)
+            assert!(!poh_recorder.read().unwrap().has_bank());
+            assert_eq!(buffered_packet_batches.len(), num_conflicting_transactions);
+            // When the working bank in poh_recorder is Some, all packets should be processed.
+            // Multi-Iterator will process them 1-by-1 if all txs are conflicting.
+            poh_recorder.write().unwrap().set_bank_for_test(bank);
+            let bank_start = poh_recorder.read().unwrap().bank_start().unwrap();
+            let banking_stage_stats = BankingStageStats::default();
+            consumer.consume_buffered_packets(
+                &bank_start,
+                &mut buffered_packet_batches,
+                &banking_stage_stats,
+                &mut LeaderSlotMetricsTracker::new(0),
+            );
+
+            // Check that all packets were processed without retrying
+            assert!(buffered_packet_batches.is_empty());
+            assert_eq!(
+                banking_stage_stats
+                    .consumed_buffered_packets_count
+                    .load(Ordering::Relaxed),
+                num_conflicting_transactions
+            );
+            assert_eq!(
+                banking_stage_stats
+                    .rebuffered_packets_count
+                    .load(Ordering::Relaxed),
+                0
+            );
+            // Use bank to check the number of entries (batches)
+            assert_eq!(bank_start.working_bank.transactions_per_entry_max(), 1);
+            assert_eq!(
+                bank_start.working_bank.transaction_entries_count(),
+                4 + num_conflicting_transactions as u64 // 4 for funding transfers
             );
 
             poh_recorder
@@ -2113,24 +2490,24 @@ mod tests {
     fn test_bank_filter_valid_transaction_indexes() {
         assert_eq!(
             Consumer::filter_valid_transaction_indexes(&[
-                (Err(TransactionError::BlockhashNotFound), None),
-                (Err(TransactionError::BlockhashNotFound), None),
-                (Ok(()), None),
-                (Err(TransactionError::BlockhashNotFound), None),
-                (Ok(()), None),
-                (Ok(()), None),
+                (Err(TransactionError::BlockhashNotFound), None, None),
+                (Err(TransactionError::BlockhashNotFound), None, None),
+                (Ok(()), None, None),
+                (Err(TransactionError::BlockhashNotFound), None, None),
+                (Ok(()), None, None),
+                (Ok(()), None, None),
             ]),
             [2, 4, 5]
         );
 
         assert_eq!(
             Consumer::filter_valid_transaction_indexes(&[
-                (Ok(()), None),
-                (Err(TransactionError::BlockhashNotFound), None),
-                (Err(TransactionError::BlockhashNotFound), None),
-                (Ok(()), None),
-                (Ok(()), None),
-                (Ok(()), None),
+                (Ok(()), None, None),
+                (Err(TransactionError::BlockhashNotFound), None, None),
+                (Err(TransactionError::BlockhashNotFound), None, None),
+                (Ok(()), None, None),
+                (Ok(()), None, None),
+                (Ok(()), None, None),
             ]),
             [0, 3, 4, 5]
         );
