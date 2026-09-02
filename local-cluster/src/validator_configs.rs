@@ -31,7 +31,6 @@ pub fn safe_clone_config(config: &ValidatorConfig) -> ValidatorConfig {
         repair_whitelist: config.repair_whitelist.clone(),
         gossip_validators: config.gossip_validators.clone(),
         accounts_hash_interval_slots: config.accounts_hash_interval_slots,
-        accounts_hash_fault_injector: config.accounts_hash_fault_injector,
         max_genesis_archive_unpacked_size: config.max_genesis_archive_unpacked_size,
         wal_recovery_mode: config.wal_recovery_mode.clone(),
         run_verification: config.run_verification,
@@ -69,6 +68,7 @@ pub fn safe_clone_config(config: &ValidatorConfig) -> ValidatorConfig {
         block_production_method: config.block_production_method.clone(),
         generator_config: config.generator_config.clone(),
         use_snapshot_archives_at_startup: config.use_snapshot_archives_at_startup,
+        wen_restart_proto_path: config.wen_restart_proto_path.clone(),
     }
 }
 
